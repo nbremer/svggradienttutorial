@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	
+	<!-- D3.js -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+	
+	<!-- Google Font -->
+	<link href='http://fonts.googleapis.com/css?family=Open+Sans:300,400' rel='stylesheet' type='text/css'>
+	
+	<style>
+		body {
+		  	font-size: 10px;
+		  	font-family: 'Open Sans', sans-serif;
+		  	font-weight: 400;
+		  	fill: #8C8C8C;
+		  	text-align: center;
+		}
+		
+		.title {
+			text-anchor: middle;
+			font-size: 16px;
+			fill: #5E5E5E;
+		}
+
+		.city {
+			text-anchor: middle;
+			font-size: 24px;
+			fill: #5E5E5E;
+		}
+
+		.year {
+			text-anchor: middle;
+			font-size: 12px;
+			font-weight: 300;
+			fill: #D3D3D3;
+		}
+
+		.january {
+			font-size: 10px;
+			text-anchor: start;
+			font-weight: 300;
+			fill: #D3D3D3;
+		}
+
+		.yearLine {
+			stroke: #C4C4C4;
+		}
+
+		.axisText {
+			fill: #D3D3D3;
+			font-size: 10px;
+			font-weight: 300;
+			text-anchor: middle;
+			text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;
+		}
+		
+		.axisCircles {
+			fill: none;
+			stroke: #F0F0F0;
+			stroke-width: 1px;
+		}
+		
+		.legendText {
+  		  	font-size: 10px;
+  		  	font-weight: 400;
+  		  	fill: #8C8C8C;
+  		  	text-align: center;
+		}
+	</style>
+	
+</head>	
+<body>
+	
+	<div id="chart"></div>
+
+<script>
+
+//This design is based on the amazing work of http://www.weather-radials.com/
+//And is only meant as a nice example of how you can use an SVG gradient as a legend
+
+///////////////////////////////////////////////////
+//////////////// Set the Scales ///////////////////
+///////////////////////////////////////////////////
+
+//Set the dimensions of the chart
+var margin = {top: 30, right: 30, bottom: 30, left: 50},
+    width = 600 - margin.left - margin.right,
+    height = 600 - margin.top - margin.bottom;
+
+var parseDate = d3.time.format("%Y-%m-%d").parse;
+
+//Set the minimum inner radius and max outer radius of the chart
+var innerRadius = 80,
+	outerRadius = 200;
+
+//Base the color scale on average temperature extremes
+var colorScale = d3.scale.linear()
+	.domain([-10, 10, 30])
+	.range(["#2c7bb6", "#ffff8c", "#d7191c"])
+	.interpolate(d3.interpolateHcl);
+
+//Scale for the heights of the bar, not starting at zero to give the bars an initial offset outward
+var barScale = d3.scale.linear()
+	.range([innerRadius, outerRadius]);
+
+//Scale to turn the date into an angle of 360 degrees in total
+//With the first datapoint (Jan 1st) on top
+var angle = d3.scale.linear()
+	.range([-180, 180]); 
+
+///////////////////////////////////////////////////
+////////////// Initialize the SVG /////////////////
+///////////////////////////////////////////////////
+	      
+//Add the svg canvas for the line chart
+var svg = d3.select("#chart")
+    .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+        .attr("transform", "translate(" + (margin.left + width/2) + "," + margin.top + ")");
+
+//Add a title to explain the gradient	
+svg.append("text")
+	.attr("class", "title")
+	.attr("x", 0)
+	.attr("y", 0)
+	.text("9 color gradient example");
+	
+///////////////////////////////////////////////////
+///////// Create the Temperature circle ///////////
+///////////////////////////////////////////////////
+//Data from https://www.wunderground.com/
+d3.csv("weatherBejing2015.csv", function(error, tempData) {
+	
+	//Turn strings into actual numbers
+ 	tempData.forEach(function(d) {
+	 	d.min_temp = +d.min_temp;
+	 	d.mean_temp = +d.mean_temp;
+	 	d.max_temp = +d.max_temp;
+		d.date = parseDate(d.date);
+ 	});
+		
+	//Set the bar and angle domains
+	barScale.domain([d3.min(tempData, function(d) { return d.min_temp; }), d3.max(tempData, function(d) { return d.max_temp; })]); 
+	angle.domain(d3.extent(tempData, function(d) { return d.date; }));
+
+	//Wrapper for the bars and to position it downward
+	var nineColorBarWrapper = svg.append("g")
+		.attr("transform", "translate(" + 0 + "," + (outerRadius + 10) + ")");
+		
+	//Draw gridlines below the bars
+ 	var axes = nineColorBarWrapper.selectAll(".gridCircles")
+	 	.data([-10,0,10,20,30])
+	 	.enter().append("g");
+	//Draw the circles
+	axes.append("circle")
+	 	.attr("class", "axisCircles")
+	 	.attr("r", function(d) { return barScale(d); });
+	//Draw the axis labels
+	axes.append("text")
+		.attr("class", "axisText")
+		.attr("y", function(d) { return barScale(d); })
+		.attr("dy", "0.3em")
+		.text(function(d) { return d + "°C"});
+		
+	//Add a small title to explain	
+	nineColorBarWrapper.append("text")
+		.attr("class", "city")
+		.attr("x", 0)
+		.attr("y", 0)
+		.text("Beijing");
+	//Add subtitle for year
+	nineColorBarWrapper.append("text")
+		.attr("class", "year")
+		.attr("x", 0)
+		.attr("y", 22)
+		.text("2015");
+
+	//Add January for reference
+	nineColorBarWrapper.append("text")
+		.attr("class", "january")
+		.attr("x", 5)
+		.attr("y", -outerRadius * 0.91)
+		.text("Jan");
+	//Add a line to split the year
+	nineColorBarWrapper.append("line")
+		.attr("class", "yearLine")
+		.attr("x1", 0)
+		.attr("y1", -innerRadius * 0.9)
+		.attr("x2", 0)
+		.attr("y2", -outerRadius * 0.95);
+
+	//Draw a bar per day were the height is the difference between the minimum and maximum temperature
+	//And the color is based on the mean temperature
+ 	nineColorBarWrapper.selectAll(".tempBar")
+	 	.data(tempData)
+	 	.enter().append("rect")
+	 	.attr("class", "tempBar")
+	 	.attr("transform", function(d,i) { return "rotate(" + (angle(d.date)) + ")"; })
+	 	.attr("width", 1)
+		.attr("height", function(d,i) { return barScale(d.max_temp) - barScale(d.min_temp); })
+	 	.attr("x", -0.5)
+	 	.attr("y", function(d,i) {return barScale(d.min_temp); })
+	 	.style("fill", function(d) { return colorScale(d.mean_temp); });
+		
+	///////////////////////////////////////////////////
+	///////////// Create the gradient ////////////////
+	///////////////////////////////////////////////////
+		
+	//Create a linear gradient with multiple colors	
+	svg.append("defs")
+		.append("linearGradient")
+		.attr("id", "legendGradientMulti")
+		.attr("x1", "0%").attr("y1", "0%")
+		.attr("x2", "100%").attr("y2", "0%")
+		.selectAll("stop") 
+		.data([                             
+				{offset: "0%", color: "#2c7bb6"}, 
+				{offset: "12.5%", color: "#00a6ca"},  
+				{offset: "25%", color: "#00ccbc"}, 
+				{offset: "37.5%", color: "#90eb9d"}, 
+				{offset: "50%", color: "#ffff8c"}, 
+				{offset: "62.5%", color: "#f9d057"}, 
+				{offset: "75%", color: "#f29e2e"}, 			
+				{offset: "87.5%", color: "#e76818"},   			
+				{offset: "100%", color: "#d7191c"}    
+			])                  
+		.enter().append("stop") 
+		.attr("offset", function(d) { return d.offset; })   
+		.attr("stop-color", function(d) { return d.color; });
+
+	///////////////////////////////////////////////////
+	/////////////// Create the Legend /////////////////
+	///////////////////////////////////////////////////
+
+	var legendWidth = 300;
+
+	//Create a wrapper for the legend
+	var legendWrapper = svg.append("g")
+		.attr("class", "legendWrapper")
+		.attr("transform", "translate(0," + (2*outerRadius + 40) + ")");
+
+	//Data for the legend text
+	var legendText = [
+		{x: -legendWidth/2, y: 30, text: "-10°C", anchor: "start"},
+		{x: 0, y: 0, text: "Average temperature on a day", anchor: "middle"},
+		{x: legendWidth/2, y: 30, text: "30°C", anchor: "end"}];
+	
+	//Draw the rectangle and fill with the gradient
+	legendWrapper.append("rect")
+		.attr("class", "legend")
+		.attr("x", -legendWidth/2)
+		.attr("y", 10)
+		.attr("rx", 4)
+		.attr("width", legendWidth)
+		.attr("height", 8)
+		.style("fill", "url(#legendGradientMulti)");
+	
+	//Append the text along the legend
+	legendWrapper.selectAll(".legendText")
+		.data(legendText)
+	   .enter().append("text")
+		.attr("class", "legendText")
+		.attr("x", function(d) { return d.x; })
+		.attr("y", function(d) { return d.y; })
+		.style("text-anchor", function(d) { return d.anchor; })
+		.text(function(d) { return d.text; });
+		
+});
+	
+
+	
+</script>
+
+</body>
+</html>

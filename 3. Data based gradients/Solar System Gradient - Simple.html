@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	
+	<!-- D3.js -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+	
+	<!-- Google Font -->
+	<link href='http://fonts.googleapis.com/css?family=Open+Sans:300,400' rel='stylesheet' type='text/css'>
+	
+	<style>
+		body {
+		  	font-size: 10px;
+		  	font-family: 'Open Sans', sans-serif;
+		  	font-weight: 400;
+		  	fill: #8C8C8C;
+		  	text-align: center;
+		}
+	</style>
+	
+</head>	
+<body>
+	
+	<div id="chart"></div>
+
+<script>
+
+///////////////////////////////////////////////////
+//////////////// Set the Scales ///////////////////
+///////////////////////////////////////////////////
+
+//Set the dimensions of the chart
+var margin = {top: 100, right: 30, bottom: 30, left: 30},
+    width = 700 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+//Diameter data from http://nssdc.gsfc.nasa.gov/planetary/factsheet/planet_table_ratio.html
+var planets = [
+	{planet: "Mercury", diameter: 0.383, color: "#A17F5D"},
+	{planet: "Venus", diameter: 0.949, color: "#E89624"},
+	{planet: "Earth", diameter: 1, color: "#518E87"},
+	{planet: "Mars", diameter: 0.532, color: "#964120"},
+	{planet: "Jupiter", diameter: 11.21, color: "#F8800F"},
+	{planet: "Saturn", diameter: 9.45, color: "#E0B463"},
+	{planet: "Uranus", diameter: 4.01, color: "#D1E3F4"},
+	{planet: "Neptune", diameter: 3.88, color: "#515CA8"}
+];
+
+//I'm using linear here, because I already know the exact diameter and don't want to do an area comparison
+var planetScale = d3.scale.linear()
+	.domain([0, d3.max(planets, function(d) { return d.diameter; })])
+	.range([0, 150]);
+
+//Create an offset for each planet, based on the diameters of the previous planets
+var padding = 10;	
+planets.forEach( function(d,i) {
+	if(i === 0) { 
+		d.offset = 0; 
+	} else {
+		d.offset = planets[i-1].offset + planetScale(planets[i-1].diameter) + padding*2;
+	}
+})
+
+///////////////////////////////////////////////////
+////////////// Initialize the SVG /////////////////
+///////////////////////////////////////////////////
+	      
+//Add the svg canvas
+var svg = d3.select("#chart")
+    .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+        .attr("transform", "translate(" + (margin.left) + "," + margin.top + ")");
+
+///////////////////////////////////////////////////
+///////// Create sphere looking planets ///////////
+///////////////////////////////////////////////////
+	
+//Radial gradient with the center at one end of the circle, as if illuminated from the side
+var gradientRadial = svg.append("defs").selectAll("radialGradient")
+	.data(planets)
+	.enter().append("radialGradient")
+	.attr("id", function(d){ return "gradient-" + d.planet; })
+	.attr("cx", "35%")
+	.attr("cy", "35%")
+	.attr("r", "60%");
+
+//Append the color stops
+gradientRadial.append("stop")
+	.attr("offset", "0%")
+	.attr("stop-color", function(d) { return d3.rgb(d.color).brighter(1); });
+
+gradientRadial.append("stop")
+	.attr("offset", "50%")
+	.attr("stop-color", function(d) { return d.color; });
+	 
+gradientRadial.append("stop")
+	.attr("offset",  "100%")
+	.attr("stop-color", function(d) { return d3.rgb(d.color).darker(1.75); });
+	
+//Add the planets
+svg.selectAll(".planetsGradient")
+	.data(planets)
+	.enter().append("circle")
+	.attr("class", "planetsGradient")
+	.attr("cx", function(d, i) { return d.offset + planetScale(d.diameter)/2 + padding; })
+	.attr("cy", 0)
+	.attr("r", function(d) { return planetScale(d.diameter)/2; })
+	.style("fill", function(d) { return "url(#gradient-" + d.planet + ")"; });
+
+</script>
+
+</body>
+</html>

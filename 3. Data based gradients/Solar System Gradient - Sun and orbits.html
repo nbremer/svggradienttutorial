@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	
+	<!-- D3.js -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+	
+	<!-- Google Font -->
+	<link href='http://fonts.googleapis.com/css?family=Open+Sans:300,400' rel='stylesheet' type='text/css'>
+	
+	<style>
+		body {
+		  	font-size: 10px;
+		  	font-family: 'Open Sans', sans-serif;
+		  	font-weight: 400;
+		  	fill: #8C8C8C;
+		  	margin: 0;
+		  	background: url(galaxy.jpg);
+		}
+
+		.orbit {
+			fill: none;
+			stroke: white;
+			stroke-width: 0.75px;
+			opacity: 0.7;
+		}
+	</style>
+	
+</head>	
+<body>
+	
+	<div id="chart"></div>
+
+<script>
+
+///////////////////////////////////////////////////
+//////////////// Set the Scales ///////////////////
+///////////////////////////////////////////////////
+
+//Set the dimensions of the chart
+var margin = {top: 0, right: 0, bottom: 0, left: 0},
+    width = 1500 - margin.left - margin.right,
+    height = 1200 - margin.top - margin.bottom;
+
+//Diameter data from http://nssdc.gsfc.nasa.gov/planetary/factsheet/planet_table_ratio.html
+//And yes, I know that the Sun isn't a planet ;)
+var planets = [
+	{planet: "Sun", diameter: 109.1, color: "#EDA922"},
+	{planet: "Mercury", diameter: 0.383, color: "#A17F5D"},
+	{planet: "Venus", diameter: 0.949, color: "#E89624"},
+	{planet: "Earth", diameter: 1, color: "#518E87"},
+	{planet: "Mars", diameter: 0.532, color: "#964120"},
+	{planet: "Jupiter", diameter: 11.21, color: "#F8800F"},
+	{planet: "Saturn", diameter: 9.45, color: "#E0B463"},
+	{planet: "Uranus", diameter: 4.01, color: "#D1E3F4"},
+	{planet: "Neptune", diameter: 3.88, color: "#515CA8"}
+];
+
+//Some variables to use more often
+var padding = 25,
+	maxScale = 1400,
+	leftOffset = 200;
+
+//I'm using linear here, because I already know the exact diameter and don't want to do an area comparison
+var planetScale = d3.scale.linear()
+	.domain([0, d3.max(planets, function(d) { return d.diameter; })])
+	.range([0, 1400]);
+
+//Calculate an offset for each planet, so they'll be in the right order each with the same distance in between
+planets.forEach( function(d,i) {
+	if(i === 0) { 
+		d.offset = -planetScale(d.diameter)/2 - padding; 
+		d.angle = 0;
+	} else {
+		d.offset = planets[i-1].offset + planetScale(planets[i-1].diameter) + padding*2;
+		d.angle = -40 + i * 8;
+	}//else
+});
+
+///////////////////////////////////////////////////
+////////////// Initialize the SVG /////////////////
+///////////////////////////////////////////////////
+	      
+//Add the svg canvas
+var svg = d3.select("#chart")
+    .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+        .attr("transform", "translate(" + (margin.left) + "," + margin.top + ")");
+
+///////////////////////////////////////////////////
+//////// Create gradients (and a filter) //////////
+///////////////////////////////////////////////////
+
+//Container for all the gradients that will be created
+var defs = svg.append("defs");
+
+//Filter for the outside glow of the Sun
+var filter = defs.append('filter').attr('id','glow'),
+	feGaussianBlur = filter.append('feGaussianBlur').attr('stdDeviation','10').attr('result','coloredBlur'),
+	feMerge = filter.append('feMerge');
+	feMerge.append('feMergeNode').attr('in','coloredBlur');
+	feMerge.append('feMergeNode').attr('in','SourceGraphic');
+
+//Radial gradient with the center at one end of the circle, as if illuminated from the side
+var gradientRadial = defs.selectAll("radialGradient")
+	.data(planets.slice(1)) //Take of the Sun since it will get its own gradient different from the planets
+	.enter().append("radialGradient")
+	.attr("id", function(d){ return "gradient-" + d.planet; })
+	.attr("cx", "15%")
+	.attr("cy", "50%")
+	.attr("r", "85%");
+
+//Append the color stops
+gradientRadial.append("stop")
+	.attr("offset", "0%")
+	.attr("stop-color", function(d) { return d3.rgb(d.color).brighter(1); });
+gradientRadial.append("stop")
+	.attr("offset", "50%")
+	.attr("stop-color", function(d) { return d.color; });
+gradientRadial.append("stop")
+	.attr("offset",  "80%")
+	.attr("stop-color", function(d) { return d3.rgb(d.color).darker(2.5); }); 
+gradientRadial.append("stop")
+	.attr("offset",  "100%")
+	.attr("stop-color", function(d) { return "black"; });
+	
+//Create a separate gradient for the Sun since this is the "lightsource"
+//This one is centered in the middle of the circle
+defs.append("radialGradient")
+	.attr("id", "gradient-Sun")
+	.attr("cx", "50%") //Not actually needed, since this is the default
+	.attr("cy", "50%") //Not actually needed, since this is the default
+	.attr("r", "50%")  //Not actually needed, since this is the default
+	.selectAll("stop")
+	.data([
+			{offset: "0%", color: "#FFF76B"},
+			{offset: "50%", color: "#FFF845"},
+			{offset: "90%", color: "#FFDA4E"},
+			{offset: "100%", color: "#FB8933"}
+		])
+	.enter().append("stop")
+	.attr("offset", function(d) { return d.offset; })
+	.attr("stop-color", function(d) { return d.color; });
+	
+///////////////////////////////////////////////////
+///////// Create sphere looking planets ///////////
+///////////////////////////////////////////////////
+
+//Container for all the planets
+var planetContainerGradient = svg.append("g")
+		.attr("class","planetContainerGradient")
+		.attr("transform", "translate(" + (-leftOffset) + ", 500)");
+
+//Add a wrapper for each planet-orbit pair
+var planetGroups = planetContainerGradient.selectAll(".planetsGradient")
+	.data(planets)
+	.enter().append("g");
+
+//Create the white planet orbits
+planetGroups.append("circle")
+	.attr("class","orbit")
+	.attr("r", function(d,i) { return d.offset + planetScale(d.diameter)/2 + padding; });
+
+//Create the planets (and Sun) and fill them with the correct gradient
+planetGroups.append("circle").attr("class", "planetsGradient")
+	.attr("transform", function(d,i) { return "translate(" + (d.offset + planetScale(d.diameter)/2 + padding) * Math.cos(d.angle * Math.PI/180) + "," + (d.offset + planetScale(d.diameter)/2 + padding) * Math.sin(d.angle * Math.PI/180) + ")rotate(" + d.angle + ")"; })
+	.attr("r", function(d) { return planetScale(d.diameter)/2; }) //Slightly cumbersome way to position each planet, offset by an angle, to make it visually more appealing
+	.style("fill", function(d) { return "url(#gradient-" + d.planet + ")"; }) //Reference the correct gradient by using the planet name
+	.style("filter", function(d) { return d.planet === "Sun" ? "url(#glow)" : "none"; }); //An SVG filter that gives the Sun an appearance of glowing
+
+
+</script>
+
+</body>
+</html>

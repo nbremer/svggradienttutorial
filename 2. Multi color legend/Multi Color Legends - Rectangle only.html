@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	
+	<!-- D3.js -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+	
+	<!-- Google Font -->
+	<link href='http://fonts.googleapis.com/css?family=Open+Sans:300,400' rel='stylesheet' type='text/css'>
+	
+	<style>
+		body {
+		  font-size: 10px;
+		  font-family: 'Open Sans', sans-serif;
+		  font-weight: 400;
+		  fill: #8C8C8C;
+		  text-align: center;
+		}
+		
+		.title {
+			text-anchor: middle;
+			font-size: 14px;
+			fill: #5E5E5E;
+		}
+	</style>
+	
+</head>	
+<body>
+	
+	<div id="chart"></div>
+
+<script>
+
+///////////////////////////////////////////////////
+//////////////// Set the Scales ///////////////////
+///////////////////////////////////////////////////
+
+//Set the dimensions of the chart
+var margin = {top: 30, right: 30, bottom: 30, left: 50},
+    width = 600 - margin.left - margin.right,
+    height = 300 - margin.top - margin.bottom;
+
+///////////////////////////////////////////////////
+////////////// Initialize the SVG /////////////////
+///////////////////////////////////////////////////
+	      
+//Add the svg canvas for the line chart
+var svg = d3.select("#chart")
+    .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+///////////////////////////////////////////////////
+///////////// Create the gradients ////////////////
+///////////////////////////////////////////////////
+
+//Create a linear gradient with two colors	
+svg.append("defs")
+	.append("linearGradient")
+	.attr("id", "legendGradientTwo")
+	.attr("x1", "0%")
+	.attr("y1", "0%")
+	.attr("x2", "100%")
+	.attr("y2", "0%")
+	.selectAll("stop") 
+	.data([                             
+			{offset: "0%", color: "#2c7bb6"},   			
+			{offset: "100%", color: "#d7191c"}    
+		])                  
+	.enter().append("stop") 
+	.attr("offset", function(d) { return d.offset; })   
+	.attr("stop-color", function(d) { return d.color; });
+		
+//Create a linear gradient with multiple colors	
+svg.append("defs")
+	.append("linearGradient")
+	.attr("id", "legendGradientMulti")
+	.attr("x1", "0%").attr("y1", "0%")
+	.attr("x2", "100%").attr("y2", "0%")
+	.selectAll("stop") 
+	.data([                             
+			{offset: "0%", color: "#2c7bb6"}, 
+			{offset: "12.5%", color: "#00b8c7"},  
+			{offset: "25%", color: "#86e9a0"}, 
+			{offset: "37.5%", color: "#fef681"}, 
+			{offset: "50%", color: "#f9d259"}, 
+			{offset: "62.5%", color: "#f4ac38"}, 
+			{offset: "75%", color: "#ee8520"}, 			
+			{offset: "87.5%", color: "#e45918"},   			
+			{offset: "100%", color: "#d7191c"}    
+		])                  
+	.enter().append("stop") 
+	.attr("offset", function(d) { return d.offset; })   
+	.attr("stop-color", function(d) { return d.color; });
+
+///////////////////////////////////////////////////
+////////////////// Legend text ////////////////////
+///////////////////////////////////////////////////
+		
+//Data for the legend text
+var legendText = [
+	{x: 0, text: "0°C", anchor: "start"},
+	{x: width/2, text: "Average temperature", anchor: "middle"},
+	{x: width, text: "30°C", anchor: "end"}];
+
+///////////////////////////////////////////////////
+///////// Create the 2 color rectangle ////////////
+///////////////////////////////////////////////////
+
+//Add a small title to explain	
+svg.append("text")
+	.attr("class", "title")
+	.attr("x", width/2)
+	.attr("y", 0)
+	.text("Two color gradient");
+	
+//Draw the rectangle and fill with the gradient
+svg.append("rect")
+	.attr("class", "legend")
+	.attr("x", 0)
+	.attr("y", 10)
+	.attr("rx", 8)
+	.attr("width", width)
+	.attr("height", 16)
+	.style("fill", "url(#legendGradientTwo)");
+	
+//Append the text along the legend
+svg.selectAll(".legendTextTwo")
+	.data(legendText)
+   .enter().append("text")
+	.attr("class", "legendTextTwo")
+	.attr("x", function(d) { return d.x; })
+	.attr("y", 40)
+	.style("text-anchor", function(d) { return d.anchor; })
+	.text(function(d) { return d.text; });
+
+///////////////////////////////////////////////////
+///////// Create the 9 color rectangle ////////////
+///////////////////////////////////////////////////
+	
+//Add a small title to explain	
+svg.append("text")
+	.attr("class", "title")
+	.attr("x", width/2)
+	.attr("y", 100)
+	.text("Nine color gradient");
+	
+//Draw the rectangle and fill with the gradient
+svg.append("rect")
+	.attr("class", "legend")
+	.attr("x", 0)
+	.attr("y", 110)
+	.attr("rx", 8)
+	.attr("width", width)
+	.attr("height", 16)
+	.style("fill", "url(#legendGradientMulti)");
+	
+//Append the text along the legend
+svg.selectAll(".legendTextMulti")
+	.data(legendText)
+   .enter().append("text")
+	.attr("class", "legendTextMulti")
+	.attr("x", function(d) { return d.x; })
+	.attr("y", 140)
+	.style("text-anchor", function(d) { return d.anchor; })
+	.text(function(d) { return d.text; });
+	
+</script>
+
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	
+	<!-- D3.js -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+	
+	<!-- Google Font -->
+	<link href='http://fonts.googleapis.com/css?family=Open+Sans:300,400' rel='stylesheet' type='text/css'>
+	
+	<style>
+		body {
+		  font-size: 10px;
+		  font-family: 'Open Sans', sans-serif;
+		  font-weight: 400;
+		  fill: #8C8C8C;
+		  text-align: center;
+		}
+		
+		.axis path,
+		.axis line {
+			fill: none;
+		  	stroke: #C4C4C4;
+		  	shape-rendering: crispEdges;
+		}
+		
+		.line {
+			stroke: #21825C;
+			stroke-width: 1.5px;
+			fill: none;
+		}
+		
+		.lineDots {
+			fill: #21825C;
+		}
+	</style>
+	
+</head>	
+<body>
+	
+	<div id="chart"></div>
+
+<script>
+
+///////////////////////////////////////////////////
+/////////////// Create the data ///////////////////
+///////////////////////////////////////////////////
+	
+//Completely random dataset
+var dataset = [
+	{ date: "2016-01-01", number: 5554},
+	{ date: "2016-01-02", number: 4406},
+	{ date: "2016-01-03", number: 5274},
+	{ date: "2016-01-04", number: 4903},
+	{ date: "2016-01-05", number: 4856},
+	{ date: "2016-01-06", number: 5383},
+	{ date: "2016-01-07", number: 6171},
+	{ date: "2016-01-08", number: 4157},
+	{ date: "2016-01-09", number: 5158},
+	{ date: "2016-01-10", number: 5278},
+	{ date: "2016-01-11", number: 5249},
+	{ date: "2016-01-12", number: 5713},
+	{ date: "2016-01-13", number: 6705},
+	{ date: "2016-01-14", number: 6609},
+	{ date: "2016-01-15", number: 7627},
+	{ date: "2016-01-16", number: 6795},
+	{ date: "2016-01-17", number: 5341},
+	{ date: "2016-01-18", number: 5649},
+	{ date: "2016-01-19", number: 5938},
+	{ date: "2016-01-20", number: 6258},
+	{ date: "2016-01-21", number: 7009},
+	{ date: "2016-01-22", number: 8853},
+	{ date: "2016-01-23", number: 7360},
+	{ date: "2016-01-24", number: 6181},
+	{ date: "2016-01-25", number: 6293},
+	{ date: "2016-01-26", number: 6461},
+	{ date: "2016-01-27", number: 6370}
+]
+
+//Parse the date
+var parseDate = d3.time.format("%Y-%m-%d").parse;
+dataset.forEach( function(d) {
+    d.date = parseDate(d.date);
+});
+
+///////////////////////////////////////////////////
+//////////////// Set the Scales ///////////////////
+///////////////////////////////////////////////////
+
+//Set the dimensions of the chart
+var margin = {top: 30, right: 30, bottom: 30, left: 50},
+    width = 900 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
+
+//Set the x and y scale ranges
+var xScale = d3.time.scale()
+    .domain(d3.extent(dataset, function(d) { return d.date; }))
+    .range([0, width]);
+	
+var yScale = d3.scale.linear()
+	.domain([0, d3.max(dataset, function(d) { return d.number; }) * 1.1])
+    .range([height, 0]);
+
+//Define the axes
+var xAxis = d3.svg.axis()
+    .scale(xScale)
+    .orient("bottom")
+	.ticks(6);
+
+var yAxis = d3.svg.axis()
+    .scale(yScale)
+    .orient("left")
+	.ticks(5);
+	
+//Initiate the line function
+var lineFunction = d3.svg.line()
+	.interpolate("monotone")
+    .x(function(d) { return xScale(d.date); })
+    .y(function(d) { return yScale(d.number); });
+
+//Initiate the area line function
+var areaFunction = d3.svg.area()
+	.interpolate("monotone")
+    .x(function(d) { return xScale(d.date); })
+    .y0(height)
+    .y1(function(d) { return yScale(d.number); });
+
+///////////////////////////////////////////////////
+////////////// Initialize the SVG /////////////////
+///////////////////////////////////////////////////
+	      
+//Add the svg canvas for the line chart
+var svg = d3.select("#chart")
+    .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+///////////////////////////////////////////////////
+///////////// Create the gradient /////////////////
+///////////////////////////////////////////////////
+		
+//Define the gradient below the line chart
+var areaGradient = svg.append('defs')
+		.append("linearGradient")                
+        .attr('id','areaGradient')
+        .attr("x1", "0%").attr("y1", "0%")
+        .attr("x2", "0%").attr("y2", "100%");
+		
+//Append the first stop - the color at the top                  
+areaGradient.append("stop")         
+        .attr("offset", "0%")   
+        .attr("stop-color", "#21825C")
+        .attr("stop-opacity", 0.6); 
+
+//Append the second stop - white transparant almost at the end		
+areaGradient.append("stop")         
+        .attr("offset", "80%")   
+        .attr("stop-color", "white")
+        .attr("stop-opacity", 0); 
+
+///////////////////////////////////////////////////
+/////////////// Create the chart //////////////////
+///////////////////////////////////////////////////
+		
+//Add the X Axis
+svg.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(xAxis);
+
+//Add the Y Axis
+svg.append("g")
+    .attr("class", "y axis")
+    .call(yAxis);
+
+//Draw the underlying area chart filled with the gradient
+svg.append("path")
+    .attr("class", "area")
+    .style("fill", "url(#areaGradient)")
+	.attr("d", areaFunction(dataset));
+
+//Draw the line
+svg.append("path")
+    .attr("class", "line")
+	.attr("d", lineFunction(dataset));
+	
+svg.selectAll(".lineDots")
+    .data(dataset, function(d) { return d.date; })
+    .enter().append("circle")
+    .attr("class", "lineDots")
+    .attr("r", 3)
+    .attr("cx", function(d) { return xScale(d.date); } )
+    .attr("cy", function(d) { return yScale(d.number); } );
+	
+</script>
+
+</body>
+</html>
